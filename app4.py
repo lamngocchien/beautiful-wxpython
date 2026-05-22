@@ -1,6 +1,10 @@
 """
 SSH Connection Manager — wxPython fully custom painted
 Pixel-faithful recreation of the HTML design
+
+Author: lamngocchien
+Repository: https://github.com/lamngocchien/beautiful-wxpython
+Created: May 2026
 """
 import wx
 import datetime

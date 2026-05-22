@@ -1,6 +1,9 @@
 """
 Desktop Tool - wxPython Native OS Demo
 Sidebar Navigation + Content Area
+
+Author: lamngocchien
+Repository: https://github.com/lamngocchien/beautiful-wxpython
 """
 
 import wx

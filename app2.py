@@ -1,6 +1,10 @@
 """
 Desktop Tool - Dark Mode Modern
 wxPython với giao diện tối, accent xanh cyan
+
+Author: lamngocchien
+Repository: https://github.com/lamngocchien/beautiful-wxpython
+Created: May 2026
 """
 
 import wx

@@ -1,6 +1,10 @@
 """
 Desktop Tool — Fully Custom Painted wxPython
 Toàn bộ UI vẽ tay bằng wx.GraphicsContext
+
+Author: lamngocchien
+Repository: https://github.com/lamngocchien/beautiful-wxpython
+Created: May 2026
 """
 import wx
 import wx.lib.scrolledpanel as scrolled

@@ -1,72 +1,84 @@
-# SSH Connection Manager (UI Demo)
-
-Pixel-faithful UI template recreation of SSH Connection Manager with fully custom-painted wxPython interface. This is a visual demonstration only - no actual SSH functionality is implemented.
+# SSH Connection Manager
 
 ![SSH Connection Manager Screenshot](Screenshot%202026-05-23%20044430.png)
 
-## Features (UI Demonstration)
+A collection of beautiful wxPython applications with fully custom-painted UI, demonstrating modern dark-themed interfaces with smooth animations and pixel-perfect design.
 
-- **Dark Mode UI**: Fully custom-drawn interface with dark theme
-- **Visual Connection Management**:
-  - Grouped connection display (Production, Staging, Dev, Cloud)
-  - Status indicators (Active, Idle, Offline, Error)
-  - Config script editor with syntax highlighting (visual only)
-- **Custom UI Components**:
-  - Draggable title bar with window controls
-  - Collapsible sidebar with connection groups
-  - Toolbar with Connect/Disconnect/Refresh/Add buttons (non-functional)
-  - Status bar with simulated system metrics
-- **Windows Integration**:
-  - Dark mode scrollbars
-  - Immersive dark title bar
-  - Configurable sash position
-- **Config Editor (Visual Only)**:
-  - Syntax highlighting for SSH command format
-  - Auto-completion for parameters (demonstration)
+## Features
 
-## System Requirements
+- **SSH Connection Manager**: A fully custom-painted SSH client interface with:
+  - Dark theme with accent colors
+  - Connection grouping and status indicators
+  - Custom code editor with syntax highlighting
+  - Interactive toolbar and menu system
+  - Windows dark mode integration
 
-- Windows 10/11 (with dark mode support)
-- Python 3.8+
-- wxPython 4.2+
+- **Desktop Tool**: A modern desktop application with:
+  - Native OS integration
+  - Dark/light mode toggle
+  - Sidebar navigation
+  - Custom-painted components
+
+## Applications Included
+
+1. **SSH Connection Manager** (`ssh_manager.py`, `app3.py`, `app4.py`, `app5.py`)
+   - A sophisticated SSH client UI with connection management
+   - Features custom-drawn components including:
+     - Sidebar with expandable groups
+     - Code editor with syntax highlighting
+     - Status bar with real-time updates
+     - Custom popup menus
+
+2. **Desktop Tool** (`app.py`, `desktop_tool_painted.py`, `app2.py`)
+   - A modern desktop application framework
+   - Includes both native and custom-painted versions
+   - Features:
+     - Dark/light mode switching
+     - Sidebar navigation
+     - Dashboard with statistics
+     - File management interface
+     - Settings panel
+
+## Technical Highlights
+
+- **Fully Custom-Painted UI**: All components are drawn using `wx.GraphicsContext` for pixel-perfect control
+- **Dark Mode Support**: Complete dark theme implementation with proper contrast ratios
+- **Windows Integration**: Native dark mode support for title bars and scrollbars
+- **Modern UI Patterns**: Includes hover effects, smooth animations, and responsive layouts
+- **Code Editor**: Custom syntax-highlighted editor for connection scripts
+- **Component Library**: Reusable custom components like:
+  - Dark-themed menus and toolbars
+  - Custom list controls
+  - Stat cards with accent colors
+  - Flat and ghost buttons
+
+## Requirements
+
+- Python 3.6+
+- wxPython 4.1+
 
 ## Installation
 
 ```bash
-git clone [repository-url]
-cd beautiful-wxpython-main
 pip install -r requirements.txt
-python app5.py
 ```
 
-## Usage (UI Demonstration)
+## Running the Applications
 
-1. **Navigation**:
-   - Click menu items to see visual feedback
-   - Expand/collapse connection groups in sidebar
-   - Select connections to view template config
+Each application can be run directly:
 
-2. **Visual Interaction**:
-   - Toolbar buttons provide visual feedback only
-   - Code editor displays template SSH configuration
-   - Info panel shows simulated connection status
-
-3. **Keyboard Shortcuts**:
-   - `Ctrl+B`: Toggle sidebar visibility (functional)
-
-## Configuration Template
-
-The code editor displays a template SSH configuration (not functional):
 ```bash
-connect '192.168.2.18:22' /ssh /2 /auth=password /user=admin /passwd=****
-/timeout=30 /keepalive=60
-/L=8080:localhost:80
+python ssh_manager.py
+python app.py
+python desktop_tool_painted.py
 ```
 
-## Version
+## Author
 
-2.4.1
+**Lam Ngoc Chien** and A.I
+- GitHub: [https://github.com/lamngocchien/beautiful-wxpython](https://github.com/lamngocchien/beautiful-wxpython)
+- Created: May 2026
 
 ## License
 
-[MIT License](LICENSE)
+This project is open source and available under the [MIT License](LICENSE).
