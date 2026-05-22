@@ -2,7 +2,7 @@
 
 Pixel-faithful recreation of SSH Connection Manager with fully custom-painted wxPython interface.
 
-![SSH Connection Manager Screenshot](https://i.imgur.com/ssh_manager_screenshot.png)
+![SSH Connection Manager Screenshot](Screenshot%202026-05-23%20044430.png)
 
 ## Features
 
