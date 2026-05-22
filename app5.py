@@ -6,6 +6,8 @@ import wx
 import datetime
 import time
 import random
+import re
+import wx.stc as stc
 import ctypes
 import platform
 
@@ -588,95 +590,146 @@ class SidebarPanel(wx.ScrolledWindow):
 # ══════════════════════════════════════════════════════
 #  CODE / EDITOR AREA
 # ══════════════════════════════════════════════════════
-class CodeArea(wx.ScrolledWindow):
-    LH = 22
-    PL = 16
-
+class CodeArea(stc.StyledTextCtrl):
     def __init__(self, parent):
         super().__init__(parent, style=wx.NO_BORDER)
         apply_dark_scrollbars(self)
         self.conn_id = 'prod-web'
         self.name    = 'web-server-01'
-        self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
-        self.SetScrollRate(0, self.LH)
-        self.EnableScrolling(False, True)
-        self.Bind(wx.EVT_PAINT, self._paint)
-        self.Bind(wx.EVT_SIZE,  lambda e: (e.Skip(), self.Refresh()))
+
+        # Theme settings
+        self.StyleSetBackground(stc.STC_STYLE_DEFAULT, C.CODE_BG)
+        self.StyleSetForeground(stc.STC_STYLE_DEFAULT, C.TEXT)
+        self.StyleClearAll()  # Đảm bảo tất cả styles kế thừa màu nền tối
+        self.SetSelBackground(True, C.SEL)
+        self.SetCaretForeground(C.ACCENT)
+
+        # Highlight current line
+        self.SetCaretLineVisible(True)
+        self.SetCaretLineBackground(wx.Colour(31, 31, 46))
+        
+        # Margins (Line Numbers)
+        self.SetMarginType(0, stc.STC_MARGIN_NUMBER)
+        self.SetMarginWidth(0, 40)
+        self.StyleSetBackground(stc.STC_STYLE_LINENUMBER, wx.Colour(20, 20, 28))
+        self.StyleSetForeground(stc.STC_STYLE_LINENUMBER, C.TEXT4)
+
+        # Syntax Highlighting Styles
+        self.StyleSetForeground(1, C.SYN_COMMENT)
+        self.StyleSetForeground(2, C.SYN_STR)
+        self.StyleSetForeground(3, C.SYN_KW)
+        self.StyleSetBold(3, True)
+        self.StyleSetForeground(4, C.SYN_PARAM)
+        self.StyleSetForeground(5, C.SYN_OP)
+        self.StyleSetForeground(6, C.SYN_IP)
+        self.StyleSetForeground(7, C.SYN_NUM)
+
+        # Font
+        font = C.font(10, mono=True)
+        for i in range(32):
+            self.StyleSetFont(i, font)
+
+        # Autocomplete settings
+        self.AutoCompSetIgnoreCase(True)
+        self.AutoCompSetSeparator(ord(' '))
+        self.completion_list = sorted([
+            "connect", "run", "password", "key", "localhost",
+            "/ssh", "/tcp", "/pgsql", "/mysql", "/auth", "/user", "/passwd",
+            "/timeout", "/keepalive", "/L", "/background", "/log", "/identity"
+        ])
+
+        self.Bind(stc.EVT_STC_CHANGE, self.on_change)
+        self.Bind(stc.EVT_STC_CHARADDED, self.on_char_added)
+
+    def apply_styling(self):
+        text = self.GetText()
+        if not text: return
+        
+        # Reset styling
+        self.StartStyling(0)
+        self.SetStyling(len(text.encode('utf-8')), 0)
+
+        # Unified regex (1:comment, 2:string, 3:keyword, 4:param, 5:op, 6:ip, 7:num)
+        regex = r'(#.*)|(\'[^\']*\'|"[^"]*")|\b(connect|run)\b|(/[a-zA-Z0-9]+)|([:=])|(\d{1,3}(?:\.\d{1,3}){3})|(\b\d+\b)'
+        
+        for match in re.finditer(regex, text):
+            group_idx = match.lastindex
+            if group_idx:
+                start = len(text[:match.start(group_idx)].encode('utf-8'))
+                end = len(text[:match.end(group_idx)].encode('utf-8'))
+                self.StartStyling(start)
+                self.SetStyling(end - start, group_idx)
 
     def set_conn(self, conn_id, name):
-        self.conn_id = conn_id; self.name = name
-        self.Refresh()
-
-    def _lines(self):
+        self.conn_id = conn_id
+        self.name = name
         c = CONNECTIONS.get(self.conn_id, CONNECTIONS['prod-web'])
-        return [
-            ([(f"# SSH Connection Manager — config script", C.SYN_COMMENT, True)], False),
-            ([], False),
-            ([(f"# Target: {self.name} (Production)", C.SYN_COMMENT, True)], False),
-            ([(f"# Protocol: {c['proto'].replace('/','').upper()} / Auth: {c['auth'].capitalize()}", C.SYN_COMMENT, True)], False),
-            ([], False),
-            ([("connect", C.SYN_KW, False), (" '", C.SYN_STR, False), (c['ip'], C.SYN_IP, False),
-              (":", C.SYN_OP, False), (c['port'], C.SYN_NUM, False), ("'", C.SYN_STR, False),
-              (" ", C.TEXT, False), (c['proto'], C.SYN_PARAM, False), (" /2", C.SYN_PARAM, False),
-              (" /auth", C.SYN_PARAM, False), ("=", C.SYN_OP, False), (c['auth'], C.SYN_VAL, False),
-              (" /user", C.SYN_PARAM, False), ("=", C.SYN_OP, False), (c['user'], C.SYN_VAL, False),
-              (" /passwd", C.SYN_PARAM, False), ("=", C.SYN_OP, False), ("****", C.SYN_VAL, False)], True),
-            ([], False),
-            ([(f"# Optional parameters", C.SYN_COMMENT, True)], False),
-            ([("/timeout", C.SYN_PARAM, False), ("=", C.SYN_OP, False), ("30", C.SYN_NUM, False),
-              ("  /keepalive", C.SYN_PARAM, False), ("=", C.SYN_OP, False), ("60", C.SYN_NUM, False)], False),
-            ([], False),
-            ([("# Tunnel / port-forward", C.SYN_COMMENT, True)], False),
-            ([("/L", C.SYN_PARAM, False), ("=", C.SYN_OP, False), ("8080", C.SYN_NUM, False),
-              (":", C.SYN_OP, False), ("localhost", C.SYN_IP, False),
-              (":", C.SYN_OP, False), ("80", C.SYN_NUM, False)], False),
-            ([], False),
-            ([("# Identity / key override (optional)", C.SYN_COMMENT, True)], False),
-            ([('# /identity="C:\\Users\\admin\\.ssh\\id_rsa"', C.SYN_COMMENT, True)], False),
-            ([], False),
-            ([("run", C.SYN_KW, False), (" /background", C.SYN_PARAM, False),
-              (" /log", C.SYN_PARAM, False), ("=", C.SYN_OP, False), ('"session.log"', C.SYN_STR, False)], False),
-        ]
+        
+        text = (f"# SSH Connection Manager — config script\n\n"
+                f"# Target: {self.name} (Production)\n"
+                f"# Protocol: {c['proto'].replace('/','').upper()} / Auth: {c['auth'].capitalize()}\n\n"
+                f"connect '{c['ip']}:{c['port']}' {c['proto']} /2 /auth={c['auth']} /user={c['user']} /passwd=****\n\n"
+                f"# Optional parameters\n"
+                f"/timeout=30  /keepalive=60\n\n"
+                f"# Tunnel / port-forward\n"
+                f"/L=8080:localhost:80\n\n"
+                f"# Identity / key override (optional)\n"
+                f"# /identity=\"C:\\Users\\admin\\.ssh\\id_rsa\"\n\n"
+                f"run /background /log=\"session.log\"")
+        
+        self.SetText(text)
+        self.apply_styling()
 
-    def _paint(self, event):
-        dc = wx.AutoBufferedPaintDC(self)
-        gc = wx.GraphicsContext.Create(dc)
-        cw, ch = self.GetClientSize()
-        _, sy = self.GetViewStart(); sy_px = sy * self.LH
+    def on_char_added(self, event):
+        pos = self.GetCurrentPos()
+        # Lấy vị trí bắt đầu của từ hiện tại (bao gồm cả dấu / nếu có)
+        start_pos = self.WordStartPosition(pos, True)
+        if start_pos > 0 and self.GetCharAt(start_pos - 1) == ord('/'):
+            start_pos -= 1
+            
+        word = self.GetTextRange(start_pos, pos)
+        if len(word) >= 2 or (len(word) == 1 and word == '/'):
+            if not self.AutoCompActive():
+                self.AutoCompShow(len(word), " ".join(self.completion_list))
 
-        gc.SetBrush(wx.Brush(C.CODE_BG)); gc.SetPen(wx.TRANSPARENT_PEN)
-        gc.DrawRectangle(0, 0, cw, ch)
+    def on_change(self, event):
+        self.apply_styling()
+        text = self.GetText()
+        c = CONNECTIONS.get(self.conn_id)
+        if not c: return
 
-        lines = self._lines()
-        self.SetVirtualSize(cw, len(lines) * self.LH + 40)
+        # Parse text to update CONNECTIONS dict
+        # 1. IP and Port
+        ip_match = re.search(r"connect\s+'([^:]+):(\d+)'", text)
+        if ip_match:
+            c['ip'], c['port'] = ip_match.group(1), ip_match.group(2)
+            
+        # 2. Protocol (after IP:PORT)
+        proto_match = re.search(r"connect\s+'[^']+'\s+(/[a-z]+)", text)
+        if proto_match:
+            c['proto'] = proto_match.group(1)
+            
+        # 3. User
+        user_match = re.search(r"/user=([^\s/]+)", text)
+        if user_match:
+            c['user'] = user_match.group(1)
+            
+        # 4. Auth
+        auth_match = re.search(r"/auth=([^\s/]+)", text)
+        if auth_match:
+            c['auth'] = auth_match.group(1)
 
-        GUTTER_W = 40
-        gc.SetBrush(wx.Brush(wx.Colour(20, 20, 28))); gc.SetPen(wx.TRANSPARENT_PEN)
-        gc.DrawRectangle(0, 0, GUTTER_W, ch)
-
-        mono   = C.font(10, mono=True)
-        italic = C.italic_font(10)
-
-        for li, (segs, is_cursor) in enumerate(lines):
-            ry = li * self.LH + 16 - sy_px
-            if ry + self.LH < 0 or ry > ch: continue
-
-            gc.SetFont(gc.CreateFont(C.font(9, mono=True), C.TEXT4))
-            n = str(li + 1)
-            nw, nh = text_wh(gc, n)
-            gc.DrawText(n, GUTTER_W - nw - 8, ry + (self.LH - nh)/2)
-
-            if is_cursor:
-                gc.SetBrush(wx.Brush(wx.Colour(31, 31, 46))); gc.SetPen(wx.TRANSPARENT_PEN)
-                gc.DrawRectangle(GUTTER_W, ry - 2, cw - GUTTER_W, self.LH)
-
-            x = GUTTER_W + self.PL
-            for seg_text, seg_col, is_italic in segs:
-                f = italic if is_italic else mono
-                gc.SetFont(gc.CreateFont(f, seg_col))
-                sw, sh = text_wh(gc, seg_text)
-                gc.DrawText(seg_text, x, ry + (self.LH - sh)/2)
-                x += sw
+        # Update UI components that depend on CONNECTIONS
+        editor = self.GetParent()
+        if hasattr(editor, 'info'):
+            editor.info.Refresh()
+            
+        frame = self.GetTopLevelParent()
+        if hasattr(frame, 'statusbar_'):
+            frame.statusbar_.Refresh()
+        
+        if hasattr(frame, 'sidebar'):
+            frame.sidebar.Refresh()
 
 
 # ══════════════════════════════════════════════════════
