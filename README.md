@@ -34,7 +34,7 @@ Pixel-faithful UI template recreation of SSH Connection Manager with fully custo
 
 ```bash
 git clone [repository-url]
-cd ssh-connection-manager
+cd beautiful-wxpython-main
 pip install -r requirements.txt
 python app5.py
 ```
