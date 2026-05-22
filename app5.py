@@ -803,7 +803,7 @@ class StatusBar(wx.Panel):
             return x + tw
 
         x = 0
-        label = "  ⎯ SSH Manager  "
+        label = " SSH Manager  "
         gc.SetFont(gc.CreateFont(f9, C.ACCENT))
         lw, _ = text_wh(gc, label)
         gc.SetBrush(wx.Brush(wx.Colour(30,32,58))); gc.SetPen(wx.TRANSPARENT_PEN)
@@ -839,7 +839,7 @@ class StatusBar(wx.Panel):
         gc.DrawText(time_str, w - tw_t, (h - th_t)/2)
         vline(gc, w - tw_t - 1, 0, h, C.BORDER2)
 
-        notify = f"  ⓘ Connected to {self.conn_name}  "
+        notify = f" Connected to {self.conn_name}  "
         gc.SetFont(gc.CreateFont(f9, C.AMBER))
         tw_n, th_n = text_wh(gc, notify)
         gc.DrawText(notify, w - tw_t - tw_n - 2, (h - th_n)/2)

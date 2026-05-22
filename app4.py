@@ -839,11 +839,19 @@ class StatusBar(wx.Panel):
         gc.DrawText(time_str, w - tw_t, (h - th_t)/2)
         vline(gc, w - tw_t - 1, 0, h, C.BORDER2)
 
-        notify = f"  ⓘ Connected to {self.conn_name}  "
-        gc.SetFont(gc.CreateFont(f9, C.AMBER))
+        notify = f"  Connected to {self.conn_name}  "
+        gc.SetFont(gc.CreateFont(f9, C.TEXT))
         tw_n, th_n = text_wh(gc, notify)
-        gc.DrawText(notify, w - tw_t - tw_n - 2, (h - th_n)/2)
-        vline(gc, w - tw_t - tw_n - 2, 0, h, C.BORDER2)
+        notify_x = w - tw_t - tw_n - 2
+        
+        # Draw background box for connected status
+        gc.SetBrush(wx.Brush(wx.Colour(40, 40, 60)))
+        gc.SetPen(wx.Pen(C.BORDER, 1))
+        gc.DrawRectangle(notify_x - 4, (h - th_n - 2)//2, tw_n + 8, th_n + 4)
+        
+        gc.SetFont(gc.CreateFont(f9, C.GREEN))
+        gc.DrawText(notify, notify_x, (h - th_n)/2)
+        vline(gc, notify_x - 4, 0, h, C.BORDER2)
 
 
 # ══════════════════════════════════════════════════════
