@@ -452,7 +452,7 @@ class SidebarPanel(wx.ScrolledWindow):
     INDENT    = 28
 
     def __init__(self, parent, on_select):
-        super().__init__(parent, size=(self.W, -1), style=wx.NO_BORDER)
+        super().__init__(parent, style=wx.NO_BORDER)
         apply_dark_scrollbars(self)
         
         self.on_select  = on_select
@@ -767,7 +767,7 @@ class TabBar(wx.Panel):
         gc.SetBrush(wx.Brush(C.ACCENT)); gc.SetPen(wx.TRANSPARENT_PEN)
         gc.DrawRectangle(x, h-2, TAB_W, 2)
         gc.SetFont(gc.CreateFont(C.font(11), C.TEXT3))
-        gc.DrawText("+", x + TAB_W + 10, (h - th)/2)
+        # gc.DrawText("+", x + TAB_W + 10, (h - th)/2)
 
 
 # ══════════════════════════════════════════════════════
@@ -934,19 +934,39 @@ class MainFrame(wx.Frame):
         self.SetMinSize((720, 480))
         self.SetBackgroundColour(C.APP_BG)
 
+        # Khởi tạo config để lưu/tải cài đặt
+        self.config = wx.Config("SSHManager")
+        saved_sash = self.config.ReadInt("SashPosition", 220)
+
+        # Khởi tạo cho tính năng đóng/mở sidebar
+        self.last_sash_pos = saved_sash if saved_sash > 0 else 220
+        self.anim_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self.OnAnimTimer, self.anim_timer)
+        
+        accel_id = wx.NewIdRef()
+        self.Bind(wx.EVT_MENU, self.OnToggleSidebar, id=accel_id)
+        self.SetAcceleratorTable(wx.AcceleratorTable([(wx.ACCEL_CTRL, ord('B'), accel_id)]))
+
         outer = wx.BoxSizer(wx.VERTICAL)
 
         self.titlebar = TitleBar(self)
         self.menubar_ = MenuBarPanel(self)
         self.toolbar_ = ToolBarPanel(self)  # THÊM TOOLBAR VÀO ĐÂY
 
+        # Tạo Splitter để có thể kéo thả độ rộng sidebar
+        self.splitter = wx.SplitterWindow(self, style=wx.SP_LIVE_UPDATE | wx.SP_NOBORDER)
+        self.splitter.SetBackgroundColour(C.SIDEBAR) # Mặc định ẩn (trùng màu sidebar)
+        self.splitter.SetDoubleBuffered(True)        # Giảm lag và nhấp nháy khi kéo
 
-        self.sidebar  = SidebarPanel(self, self._on_select)
-        self.editor   = EditorArea(self)
+        self.splitter.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGING, self.OnSashDragging)
+        self.splitter.Bind(wx.EVT_SPLITTER_SASH_POS_CHANGED, self.OnSashChanged)
+        self.splitter.Bind(wx.EVT_ENTER_WINDOW, self.OnSashHoverEnter)
+        self.splitter.Bind(wx.EVT_LEAVE_WINDOW, self.OnSashHoverLeave)
 
-        main_row = wx.BoxSizer(wx.HORIZONTAL)
-        main_row.Add(self.sidebar, 0, wx.EXPAND)
-        main_row.Add(self.editor,  1, wx.EXPAND)
+        self.sidebar  = SidebarPanel(self.splitter, self._on_select)
+        self.editor   = EditorArea(self.splitter)
+        self.splitter.SplitVertically(self.sidebar, self.editor, saved_sash)
+        self.splitter.SetMinimumPaneSize(150) # Không cho kéo sidebar quá nhỏ
 
         self.statusbar_ = StatusBar(self)
 
@@ -954,15 +974,80 @@ class MainFrame(wx.Frame):
         outer.Add(self.titlebar,   0, wx.EXPAND)
         outer.Add(self.menubar_,   0, wx.EXPAND)
         outer.Add(self.toolbar_,   0, wx.EXPAND) # CHÈN TOOLBAR SAU MENUBAR
-        outer.Add(main_row,        1, wx.EXPAND)
+        outer.Add(self.splitter,   1, wx.EXPAND)
         outer.Add(self.statusbar_, 0, wx.EXPAND)
 
         self.SetSizer(outer)
         self._on_select('prod-web', 'web-server-01')
         self.Centre()
         
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
         apply_dark_titlebar(self)
         self.Show()
+
+    def OnClose(self, event):
+        # Lưu vị trí sash hiện tại trước khi đóng
+        self.config.WriteInt("SashPosition", self.splitter.GetSashPosition())
+        self.config.Flush() # Đảm bảo dữ liệu được ghi xuống đĩa
+        event.Skip() # Cho phép cửa sổ tiếp tục quá trình đóng
+
+    def OnSashDragging(self, event):
+        # Khi đang kéo, đổi màu thanh sash sang màu Accent để phản hồi
+        if self.splitter.GetBackgroundColour() != C.ACCENT:
+            self.splitter.SetBackgroundColour(C.ACCENT)
+            self.splitter.Refresh()
+        event.Skip() # Cho phép hệ thống tiếp tục xử lý việc thay đổi vị trí
+
+    def OnSashHoverEnter(self, event):
+        # Khi di chuột vào vùng thanh kéo, làm nó hiện lên mờ mờ
+        if self.splitter.GetBackgroundColour() != C.BORDER:
+            self.splitter.SetBackgroundColour(C.BORDER)
+            self.splitter.Refresh()
+
+    def OnSashHoverLeave(self, event):
+        # Khi chuột rời đi, ẩn thanh kéo
+        if self.splitter.GetBackgroundColour() != C.SIDEBAR:
+            self.splitter.SetBackgroundColour(C.SIDEBAR)
+            self.splitter.Refresh()
+
+    def OnSashChanged(self, event):
+        pos = self.splitter.GetSashPosition()
+        if pos > 0:
+            self.last_sash_pos = pos
+        # Khi dừng kéo, trả lại màu tối ban đầu
+        self.splitter.SetBackgroundColour(C.SIDEBAR)
+        self.splitter.Refresh()
+        event.Skip()
+
+    def OnToggleSidebar(self, event):
+        if self.anim_timer.IsRunning():
+            return
+            
+        curr_pos = self.splitter.GetSashPosition()
+        if curr_pos > 0:
+            self.last_sash_pos = curr_pos
+            self.target_pos = 0
+        else:
+            self.target_pos = self.last_sash_pos if self.last_sash_pos > 150 else 220
+            
+        self.splitter.SetMinimumPaneSize(0)
+        self.splitter.SetBackgroundColour(C.BORDER) # Hiện màu khi đang trượt
+        self.anim_timer.Start(15)
+
+    def OnAnimTimer(self, event):
+        curr = self.splitter.GetSashPosition()
+        step = 30 # Tốc độ trượt (pixels mỗi frame)
+        
+        if abs(curr - self.target_pos) <= step:
+            self.splitter.SetSashPosition(self.target_pos)
+            self.anim_timer.Stop()
+            self.splitter.SetBackgroundColour(C.SIDEBAR)
+            if self.target_pos > 0:
+                self.splitter.SetMinimumPaneSize(150)
+        else:
+            new_pos = curr + step if curr < self.target_pos else curr - step
+            self.splitter.SetSashPosition(new_pos)
 
     def _on_select(self, conn_id, name):
         self.editor.set_conn(conn_id, name)
